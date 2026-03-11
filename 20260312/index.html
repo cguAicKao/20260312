@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixio 實驗結果學術圖表</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body {
+            background-color: #ffffff;
+            font-family: 'Times New Roman', serif;
+            color: #000;
+        }
+        .paper-container {
+            max-width: 1150px;
+            margin: 0 auto;
+            padding: 3.5rem;
+        }
+        .figure-layout {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            margin-bottom: 3.5rem;
+        }
+        .charts-container {
+            display: grid;
+            grid-template-cols: 1fr 1fr;
+            gap: 2.5rem;
+            flex-grow: 1;
+        }
+        .chart-box {
+            position: relative;
+            height: 400px;
+            padding: 10px;
+        }
+        .custom-legend {
+            flex-shrink: 0;
+            width: 180px;
+            padding-top: 70px;
+            padding-left: 1rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .legend-line-preview {
+            width: 30px;
+            height: 2px;
+            margin-right: 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-marker-preview {
+            width: 8px;
+            height: 8px;
+            border: 1px solid white;
+            box-shadow: 0 0 1px rgba(0,0,0,0.3);
+        }
+        .caption {
+            text-align: center;
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-top: 18px;
+            color: #000;
+            letter-spacing: 0.01em;
+        }
+        /* 學術三線表規格 */
+        .academic-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            border-top: 2.8px solid black; 
+            border-bottom: 2.8px solid black;
+        }
+        .academic-table th {
+            padding: 14px 12px;
+            border-bottom: 1.2px solid black;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+        }
+        .academic-table td {
+            padding: 12px;
+            text-align: center;
+        }
+        .dataset-cell {
+            text-align: left !important;
+            font-weight: bold;
+            padding-left: 20px !important;
+            border-right: 1px solid #f5f5f5;
+        }
+        .metric-label {
+            font-size: 0.8rem;
+            color: #444;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="paper-container">
+        <!-- 章節標題 -->
+        <div class="mb-14 border-b-2 border-black pb-4">
+            <h1 class="text-2xl font-bold uppercase tracking-wide">模組收斂性之比較評估 (Comparative Evaluation of Model Convergence)</h1>
+        </div>
+
+        <!-- 圖表區域 (橫向排列) -->
+        <div class="figure-layout">
+            <div class="charts-container">
+                <!-- Accuracy -->
+                <div class="flex flex-col">
+                    <div class="chart-box">
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
+                    <p class="caption">圖 1. (a) 平均準確度趨勢 (Mean Accuracy Trends)</p>
+                </div>
+                <!-- AUROC -->
+                <div class="flex flex-col">
+                    <div class="chart-box">
+                        <canvas id="aurocChart"></canvas>
+                    </div>
+                    <p class="caption">圖 1. (b) 平均 AUROC 趨勢 (Mean AUROC Trends)</p>
+                </div>
+            </div>
+
+            <!-- 右側簡約圖例 -->
+            <div id="rightLegend" class="custom-legend">
+                <p class="text-[10px] font-black mb-8 tracking-[0.2em] text-gray-400 uppercase">Dataset Key</p>
+                <!-- JS 動態生成 -->
+            </div>
+        </div>
+
+        <!-- 數據表格 -->
+        <div class="mt-24">
+            <p class="text-sm font-bold mb-5 italic">表 1. PIXIO 在不同持續預訓練 (CPT) 階段之各項指標表現細節 (含 Epoch 0 基準)。</p>
+            <div class="overflow-x-auto">
+                <table class="academic-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; width: 200px;">基準數據集 (Benchmark Dataset)</th>
+                            <th style="width: 100px;">指標</th>
+                            <th>Epoch 0</th>
+                            <th>Epoch 20</th>
+                            <th>Epoch 40</th>
+                            <th>Epoch 60</th>
+                            <th>Epoch 80</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- JS 動態插入 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-6 text-[11px] text-gray-500 font-medium flex justify-between italic">
+                <span>備註：Epoch 0 代表預訓練模型之初始狀態。</span>
+                <span class="not-italic font-bold text-black uppercase">Pixio Research &copy; 2026</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 加入 Epoch 0 的 Accuracy 與 AUROC 數據
+        const rawData = [
+            { 
+                ds: 'APTOS2019', 
+                acc: [0.826364, 0.730909, 0.749455, 0.764000, 0.773636], 
+                auroc: [0.940346, 0.865514, 0.891487, 0.899967, 0.902957] 
+            },
+            { 
+                ds: 'Glaucoma_fundus', 
+                acc: [0.765591, 0.766882, 0.791828, 0.802581, 0.805161], 
+                auroc: [0.904554, 0.895792, 0.911465, 0.915687, 0.920466] 
+            },
+            { 
+                ds: 'IDRiD_data', 
+                acc: [0.477670, 0.353398, 0.366990, 0.357282, 0.330097], 
+                auroc: [0.791426, 0.615098, 0.619168, 0.618080, 0.643761] 
+            },
+            { 
+                ds: 'MESSIDOR2', 
+                acc: [0.722814, 0.577567, 0.600380, 0.599620, 0.605323], 
+                auroc: [0.885267, 0.706218, 0.756894, 0.775794, 0.783162] 
+            },
+            { 
+                ds: 'PAPILA', 
+                acc: [0.722449, 0.683673, 0.748980, 0.755102, 0.765306], 
+                auroc: [0.714491, 0.679847, 0.764615, 0.779164, 0.773438] 
+            },
+            { 
+                ds: 'Retina', 
+                acc: [0.596685, 0.552486, 0.561326, 0.541436, 0.544751], 
+                auroc: [0.716094, 0.745743, 0.757908, 0.744672, 0.742351] 
+            }
+        ];
+
+        const epochs = [0, 20, 40, 60, 80];
+        const colors = ['#e41a1c', '#377eb8', '#4daf4a', '#ff7f00', '#984ea3', '#a65628'];
+        const markers = ['circle', 'rect', 'triangle', 'rectRot', 'star', 'crossRot'];
+
+        function initUI() {
+            const legendContainer = document.getElementById('rightLegend');
+            const tBody = document.getElementById('tableBody');
+            
+            legendContainer.innerHTML = `<p class="text-[10px] font-black mb-8 tracking-[0.2em] text-gray-400 uppercase">Dataset Key</p>`;
+            
+            rawData.forEach((d, i) => {
+                legendContainer.innerHTML += `
+                    <div class="legend-item">
+                        <div class="legend-line-preview" style="background-color: ${colors[i]}">
+                            <div class="legend-marker-preview" style="background-color: ${colors[i]}"></div>
+                        </div>
+                        <span>${d.ds}</span>
+                    </div>
+                `;
+            });
+
+            rawData.forEach(item => {
+                const accRow = `<tr class="border-t border-gray-100">
+                    <td rowspan="2" class="dataset-cell">${item.ds}</td>
+                    <td class="metric-label">Accuracy</td>
+                    ${item.acc.map(v => `<td class="font-bold text-gray-900">${(v*100).toFixed(2)}%</td>`).join('')}
+                </tr>`;
+                const aurocRow = `<tr>
+                    <td class="metric-label">AUROC</td>
+                    ${item.auroc.map(v => `<td class="font-serif text-slate-500">${v.toFixed(4)}</td>`).join('')}
+                </tr>`;
+                tBody.innerHTML += accRow + aurocRow;
+            });
+        }
+
+        function initCharts() {
+            if (typeof Chart === 'undefined') return;
+
+            const academicOptions = (yTitle, yMin, yMax) => ({
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { 
+                        backgroundColor: 'rgba(0,0,0,0.85)', 
+                        padding: 12, 
+                        cornerRadius: 0,
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${context.raw.toFixed(4)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: '訓練疊代次數 (Epochs)', font: { size: 13, weight: 'bold' }, color: '#000', padding: 12 },
+                        grid: { display: false },
+                        ticks: { color: '#000', font: { size: 12, weight: 'bold' } },
+                        border: { width: 2.2, color: '#000' }
+                    },
+                    y: {
+                        min: yMin,
+                        max: yMax,
+                        title: { display: true, text: yTitle, font: { size: 13, weight: 'bold' }, color: '#000', padding: 12 },
+                        grid: { color: '#efefef', borderDash: [4, 4], drawBorder: false },
+                        ticks: { color: '#000', font: { family: 'serif', size: 12, weight: 'bold' } },
+                        border: { width: 2.2, color: '#000' }
+                    }
+                }
+            });
+
+            const getDatasets = (key) => rawData.map((d, i) => ({
+                label: d.ds,
+                data: d[key],
+                borderColor: colors[i],
+                backgroundColor: colors[i],
+                borderWidth: 2.8,
+                pointStyle: markers[i],
+                pointRadius: 6,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1.5,
+                tension: 0
+            }));
+
+            new Chart(document.getElementById('accuracyChart'), {
+                type: 'line',
+                data: { labels: epochs, datasets: getDatasets('acc') },
+                options: academicOptions('Mean Accuracy (%)', 0.3, 0.9)
+            });
+
+            new Chart(document.getElementById('aurocChart'), {
+                type: 'line',
+                data: { labels: epochs, datasets: getDatasets('auroc') },
+                options: academicOptions('Mean AUROC Score', 0.60, 1.0)
+            });
+        }
+
+        window.onload = function() {
+            initUI();
+            initCharts();
+        };
+    </script>
+</body>
+</html>
